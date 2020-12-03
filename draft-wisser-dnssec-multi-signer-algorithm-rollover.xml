@@ -1,0 +1,230 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE rfc SYSTEM "rfc2629-xhtml.ent" [
+	<!ENTITY RFC2119 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml">
+ 	<!ENTITY RFC8901 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.8901.xml">
+	<!ENTITY RFC8078 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.8078.xml">
+	<!ENTITY RFC7477 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.7477.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<rfc
+      category="std"
+      docName="draft-wisser-multi-signer-algorithm-rollover-latest"
+      ipr="trust200902"
+      submissionType="IETF"
+      xml:lang="en"
+      tocInclude="true"
+      tocDepth="4"
+      symRefs="true"
+      sortRefs="true"
+      consensus="true"
+      version="3">
+
+ <!-- ***** FRONT MATTER ***** -->
+
+<front>
+    <title abbrev="Multi-signer DNSSEC algorithm rollover">Multi-signer DNSSEC algorithm rollover</title>
+
+	<author fullname="Ulrich Wisser" initials="U" surname="Wisser">
+		<organization>The Swedish Internet Foundation</organization>
+		<address>
+			<postal>
+				<street>Box 92073</street>
+				<city>Stockholm</city>
+				<code>12007</code>
+				<country>SE</country>
+			</postal>
+			<email>ulrich@wisser.se</email>
+			<uri>https://www.internetstiftelsen.se</uri>
+		</address>
+	</author>
+
+    <date day="1" month="12" year="2020"/>
+
+    <area>Operations and Management Area</area>
+    <workgroup>Domain Name System Operations (dnsop)</workgroup>
+
+    <keyword>DNSSEC</keyword>
+    <keyword>multi-signer</keyword>
+
+    <abstract>
+        <t>
+            This document describes an algorithm and a protocol to
+            automate DNSSEC multi-signer <xref target="RFC8901" /> setup, operations and decomissioning.
+            it makes use of <xref target="RFC8078" /> and <xref target="RFC7477" /> to accomplish this.
+        </t>
+    </abstract>
+</front>
+<middle>
+    <section numbered="true" toc="default">
+        <name>Introduction</name>
+        <t>
+            <xref target="RFC8901" /> describes the neccessary steps and API for a multi-signer
+            DNSSEC configuration. In this document we will combine <xref target="RFC8901" /> with
+            <xref target="RFC8078" /> and <xref target="RFC7477" /> to define a fully
+            automatable algorithm for setting up, operating and decomissioning of a multi-signer
+            DNSSEC configuration.
+        </t>
+        <t>
+            One of the corner cases of multi-signer DNSSEC is actually the secure change of DNS operator.
+        </t>
+        <section numbered="true" toc="default">
+            <name>Out-Of-Scope</name>
+            <t>
+                In order for any multi-signer group to give consitent answers over all instances
+                the contents of the zone have to be synchronized. The content synchronization is
+                out-of-scope for this document.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Notation</name>
+            <t>
+                Short definitions of expressions used in this document
+            </t>
+            <dl>
+                <dt>signer</dt>
+                <dd>An entity signing a zone</dd>
+                <dt>multi-signer group</dt>
+                <dd>A group of signers that sign the same zone</dd>
+            </dl>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Requirements Language</name>
+            <t>
+                The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+                "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+                document are to be interpreted as described in <xref target="RFC2119" format="default">RFC 2119</xref>.</t>
+            </section>
+        </section>
+    <section numbered="true" toc="default">
+        <name>Use Cases</name>
+        <section numbered="true" toc="default">
+            <name>Running a multi-signer setup</name>
+            <t>
+                As described in <xref target="RFC8901" /> a multi-signer DNSSEC configuration
+                has some challenges that can be overcome with the right infrastructure and
+                following a number of steps for setup and operation.
+            </t>
+            <t>
+                In this document we describe how all of the steps in the multi-signer DNSSEC setup
+                can be automated. That is, all except the initial trust between involded signers.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Secure change of name server operator</name>
+            <t>
+                Changing the name server operator of a DNSSEC signed zone can be quite a challenge.
+                Currently the most used algorithm is "going insecure". This is a bad choice for security.
+                And a bad choice for users relying on the security of the zone.
+            </t>
+            <t>
+                Changing name server operators is an edge case of multi-signer DNSSEC operations.
+                It simply comes down to the new operator joins the old operator in a multi-signer setup.
+                And once that is completed the old operator leaves the multi-signer setup.
+            </t>
+        </section>
+    </section>
+    <section anchor="algo" numbered="true" toc="default">
+        <name>Algorithm</name>
+        <section numbered="true" toc="default">
+            <name>Setting up a new multi-signer group</name>
+            <t>
+                The zone is already authoritatively served by one DNS operator and is DNSSEC signed.
+                For full automation both the KSK and ZSK or CSK must be online.
+            </t>
+            <t>
+                This would be an edge case, a multi-signer group with only one signer.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Configuration</name>
+            <t>
+                The following configrations have to be made for any signer of the multi-signer group before joining the group.
+                These steps are not automated by this draft.
+            </t>
+            <ol>
+                <li>The signers own keys (probably the keys the signer has the private part of)</li>
+                <li>The NS records in the zone that get update from the signer.</li>
+                <li>An established trust to the multi-signer group</li>
+            </ol>
+        </section>
+        <section numbered="true" toc="default">
+            <name>A new signer joins the multi-signer group</name>
+            <section numbered="true" toc="default">
+                <name>Prerequisites</name>
+                <t>The new signer</t>
+                <ol>
+                    <li>has a working setup of the zone, including DNSSEC signing.</li>
+                    <li>uses the same algorithm for DNSSEC signing as the multi-signer goup uses.</li>
+                </ol>
+            </section>
+            <section numbered="true" toc="default">
+                <name>Steps for joining</name>
+                <ol spacing="normal">
+                    <li>a new signer joins the group</li>
+                    <li>Exchange of keys, after this step all signers must have the dnskey set of all other signers of the group</li>
+                    <li>Calculate CDS/CDNSKEY set</li>
+                    <li>All signers put the ZSK of all other signers in their DNSKEY set.</li>
+                    <li>All signers publish their CDS/CDNSKEY set</li>
+                    <li>Wait for parent to pick up DS updates</li>
+                    <li>Remove CDS/CDNSKEY set from all signers</li>
+                    <li>Wait 2 time maximum TTL of DS at parent and DNSKEY at all children</li>
+                    <li>Exchange of NS set, after this step all signers must have the ns set of all other signers</li>
+                    <li>Compile new complete NS set with NS records from all signers</li>
+                    <li>Compare to NS set at parent</li>
+                    <li>If parent if different, publish CSYNC record with NS and A and AAAA bit set.</li>
+                    <li>Wait for parent to pick up changes</li>
+                    <li>Remove CSYNC record from all signers</li>
+                </ol>
+            </section>
+        </section>
+        <section numbered="true" toc="default">
+            <name>A signer leaves the multi-signer group</name>
+            <ol spacing="normal">
+                <li>Signal to all other signers to remove the leaving signes NS records</li>
+                <li>Compile new complete NS set with NS records from all signers</li>
+                <li>Compare to NS set at parent</li>
+                <li>If parent if different, publish CSYNC record with NS and A and AAAA bit set.</li>
+                <li>Wait for parent to pick up changes</li>
+                <li>Remove CSYNC record from all signers</li>
+                <li>Wait 2 times TTL of maximum NS TTL from parent and all signers</li>
+                <li>Signal all other signers leaving of multi-signer group</li>
+                <li>Stop answering queries</li>
+                <li>Remaining signers remove ZSK of leaving signer from their DNSKEY set</li>
+                <li>Remaining signers recalculat DNSKEY set</li>
+                <li>Calculate CDS/CDNSKEY set</li>
+                <li>All signers put the ZSK of all other signers in their DNSKEY set.</li>
+                <li>All signers publish their CDS/CDNSKEY set</li>
+                <li>Wait for parent to pick up DS updates</li>
+                <li>Remove CDS/CDNSKEY set from all signers</li>
+            </ol>
+        </section>
+    </section>
+    <section anchor="Acknowledgements" numbered="true" toc="default">
+        <name>Acknowledgements</name>
+    </section>
+    <section anchor="IANA" numbered="true" toc="default">
+        <name>IANA Considerations</name>
+    </section>
+    <section anchor="Security" numbered="true" toc="default">
+        <name>Security Considerations</name>
+    </section>
+</middle>
+<back>
+	<references title="Normative References">
+        &RFC2119;
+		&RFC8078;
+		&RFC7477;
+	</references>
+	<references title="Informative References">
+		&RFC8901;
+	</references>
+	<section title="Change History">
+		<section title="Change from 00 to 01" anchor="change-00-to-01">
+				<ol>
+					<li>Nothing yet</li>
+				</ol>
+		</section>
+	</section>
+</back>
+</rfc>
